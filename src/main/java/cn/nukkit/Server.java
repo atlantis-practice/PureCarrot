@@ -771,7 +771,6 @@ public class Server {
                 interfaz.shutdown();
                 this.network.unregisterInterface(interfaz);
             }
-            this.computeThreadPool.shutdownNow();
 
             this.getLogger().debug("Disabling timings");
             Timings.stopServer();
