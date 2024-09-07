@@ -166,20 +166,7 @@ public class Network {
      */
     public void processPackets(Player player, List<DataPacket> packets) {
         if (packets.isEmpty()) return;
-        List<Byte> filter = new ArrayList<>();
-        for (DataPacket packet : packets) {
-            switch (packet.pid()) {
-                case ProtocolInfo.USE_ITEM_PACKET:
-                    // Prevent double fire of PlayerInteractEvent
-                    if (!filter.contains(ProtocolInfo.USE_ITEM_PACKET)) {
-                        player.handleDataPacket(packet);
-                        filter.add(ProtocolInfo.USE_ITEM_PACKET);
-                    }
-                    break;
-                default:
-                    player.handleDataPacket(packet);
-            }
-        }
+        packets.forEach(player::handleDataPacket);
     }
 
 

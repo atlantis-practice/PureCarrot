@@ -254,7 +254,6 @@ public class Level implements ChunkManager, Metadatable {
         this.server = server;
         this.autoSave = server.getAutoSave();
 
-        boolean convert = provider == McRegion.class || provider == LevelDB.class;
         try {
             this.provider = provider.getConstructor(Level.class, String.class).newInstance(this, path);
         } catch (Exception e) {
