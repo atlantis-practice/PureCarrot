@@ -332,7 +332,7 @@ public class Server {
             try {
                 poolSize = Integer.valueOf((String) poolSize);
             } catch (Exception e) {
-                poolSize = Math.max(Runtime.getRuntime().availableProcessors() + 1, 4);
+                poolSize = Math.max(Runtime.getRuntime().availableProcessors(), 4);
             }
         }
 
@@ -387,7 +387,7 @@ public class Server {
         this.network = new Network(this);
         this.network.setName(this.getMotd());
 
-        log.info(this.getLanguage().translateString("nukkit.server.info", this.getName(), TextFormat.YELLOW + this.getNukkitVersion() + TextFormat.WHITE, TextFormat.AQUA + this.getCodename() + TextFormat.WHITE, this.getApiVersion()));
+        log.info(this.getLanguage().translateString("nukkit.server.info", this.getName(), TextFormat.YELLOW + this.getNukkitVersion() + TextFormat.WHITE, TextFormat.AQUA + "null" + TextFormat.WHITE, this.getApiVersion()));
         log.info(this.getLanguage().translateString("nukkit.server.license", this.getName()));
 
         this.consoleSender = new ConsoleCommandSender();
@@ -771,6 +771,7 @@ public class Server {
                 interfaz.shutdown();
                 this.network.unregisterInterface(interfaz);
             }
+            this.computeThreadPool.shutdownNow();
 
             this.getLogger().debug("Disabling timings");
             Timings.stopServer();
@@ -1117,7 +1118,7 @@ public class Server {
     }
 
     public String getName() {
-        return "Carrot";
+        return Nukkit.CORE_NAME;
     }
 
     public boolean isRunning() {
@@ -1128,9 +1129,6 @@ public class Server {
         return Nukkit.VERSION;
     }
 
-    public String getCodename() {
-        return Nukkit.CODENAME;
-    }
 
     public String getVersion() {
         return Arrays.toString(ProtocolInfo.MINECRAFT_VERSION);

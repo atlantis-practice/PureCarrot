@@ -1,6 +1,5 @@
 package cn.nukkit;
 
-import cn.nukkit.network.protocol.ProtocolInfo;
 import cn.nukkit.utils.ServerKiller;
 import com.google.common.base.Preconditions;
 import io.netty.util.ResourceLeakDetector;
@@ -18,31 +17,11 @@ import org.apache.logging.log4j.core.config.LoggerConfig;
 
 import java.io.IOException;
 
-/**
- * `_   _       _    _    _ _
- * | \ | |     | |  | |  (_) |
- * |  \| |_   _| | _| | ___| |_
- * | . ` | | | | |/ / |/ / | __|
- * | |\  | |_| |   <|   <| | |_
- * |_| \_|\__,_|_|\_\_|\_\_|\__|
- *
- * Nukkit启动类，包含{@code main}函数。<br>
- * The launcher class of Nukkit, including the {@code main} function.
- *
- * @author MagicDroidX(code) @ Nukkit Project
- * @author 粉鞋大妈(javadoc) @ Nukkit Project
- * @since Nukkit 1.0 | Nukkit API 1.0.0
- */
 @Log4j2
 public class Nukkit {
     public final static String VERSION = "1.0.1";
     public final static String API_VERSION = "1.0.0";
-    public final static String CODENAME = "";
-    @Deprecated
-    public final static String[] MINECRAFT_VERSION = ProtocolInfo.MINECRAFT_VERSION;
-    @Deprecated
-    public final static String MINECRAFT_VERSION_NETWORK = ProtocolInfo.MINECRAFT_VERSION_NETWORK;
-
+    public final static String CORE_NAME = "PureCarrot";
     public final static String PATH = System.getProperty("user.dir") + "/";
     public final static String DATA_PATH = System.getProperty("user.dir") + "/";
     public final static String PLUGIN_PATH = DATA_PATH + "plugins";
@@ -118,6 +97,8 @@ public class Nukkit {
             System.out.print((char) 0x1b + "]0;Stopping Server..." + (char) 0x07);
         }
         log.info("Stopping other threads");
+
+        Server.getInstance().getScheduler().close();
 
         for (Thread thread : java.lang.Thread.getAllStackTraces().keySet()) {
             if (!(thread instanceof InterruptibleThread)) {

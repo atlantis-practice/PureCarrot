@@ -88,7 +88,7 @@ public class ServerScheduler {
     }
 
     public int getAsyncTaskPoolSize() {
-        return asyncPool.getCorePoolSize();
+        return asyncPool.getParallelism();
     }
 
     public void increaseAsyncTaskPoolSize(int newSize) {
@@ -313,4 +313,7 @@ public class ServerScheduler {
         return currentTaskId.incrementAndGet();
     }
 
+    public void close() {
+        this.asyncPool.shutdownNow();
+    }
 }

@@ -256,33 +256,12 @@ public class Level implements ChunkManager, Metadatable {
 
         boolean convert = provider == McRegion.class || provider == LevelDB.class;
         try {
-            if (convert) {
-                String newPath = new File(path).getParent() + "/" + name + ".old/";
-                new File(path).renameTo(new File(newPath));
-                this.provider = provider.getConstructor(Level.class, String.class).newInstance(this, newPath);
-            } else {
-                this.provider = provider.getConstructor(Level.class, String.class).newInstance(this, path);
-            }
+            this.provider = provider.getConstructor(Level.class, String.class).newInstance(this, path);
         } catch (Exception e) {
             throw new LevelException("Caused by " + Utils.getExceptionMessage(e));
         }
 
         this.timings = new LevelTimings(this);
-
-        if (convert) {
-            this.server.getLogger().info(this.server.getLanguage().translateString("nukkit.level.updating",
-                    TextFormat.GREEN + this.provider.getName() + TextFormat.WHITE));
-            LevelProvider old = this.provider;
-            try {
-                this.provider = new LevelProviderConverter(this, path)
-                        .from(old)
-                        .to(Anvil.class)
-                        .perform();
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
-            old.close();
-        }
 
         this.provider.updateLevelName(name);
 
