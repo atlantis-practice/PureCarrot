@@ -256,10 +256,10 @@ public class RegionLoader extends BaseRegionLoader {
                 shift += sector - lastSector - 1;
             }
             if (shift > 0) {
-                this.randomAccessFile.seek(sector << 12);
+                this.randomAccessFile.seek((long) sector << 12);
                 byte[] old = new byte[4096];
                 this.randomAccessFile.read(old);
-                this.randomAccessFile.seek((sector - shift) << 12);
+                this.randomAccessFile.seek((long) (sector - shift) << 12);
                 this.randomAccessFile.write(old);
             }
             Integer[] v = this.locationTable.get(index);
@@ -267,16 +267,16 @@ public class RegionLoader extends BaseRegionLoader {
             this.locationTable.put(index, v);
             this.lastSector = sector;
         }
-        this.randomAccessFile.setLength((s + 1) << 12);
+        this.randomAccessFile.setLength((long) (s + 1) << 12);
         return shift;
     }
 
     @Override
     protected void writeLocationIndex(int index) throws IOException {
         Integer[] array = this.locationTable.get(index);
-        this.randomAccessFile.seek(index << 2);
+        this.randomAccessFile.seek((long) index << 2);
         this.randomAccessFile.writeInt((array[0] << 8) | array[1]);
-        this.randomAccessFile.seek(4096 + (index << 2));
+        this.randomAccessFile.seek(4096 + ((long) index << 2));
         this.randomAccessFile.writeInt(array[2]);
     }
 

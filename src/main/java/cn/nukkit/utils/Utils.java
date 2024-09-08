@@ -14,6 +14,30 @@ import java.util.UUID;
  */
 public class Utils {
 
+    /**
+     * A way to tell the java compiler to do not replace the users of a {@code public static final int} constant
+     * with the value defined in it, forcing the JVM to get the value directly from the class, preventing
+     * binary incompatible changes.
+     *
+     * @param value The value to be assigned to the field.
+     * @return The same value that was passed as parameter
+     */
+    public static int dynamic(int value) {
+        return value;
+    }
+
+    /**
+     * A way to tell the java compiler to do not replace the users of a {@code public static final} constant
+     * with the value defined in it, forcing the JVM to get the value directly from the class, preventing
+     * binary incompatible changes.
+     *
+     * @param value The value to be assigned to the field.
+     * @return The same value that was passed as parameter
+     */
+    public static <T> T dynamic(T value) {
+        return value;
+    }
+
     public static void writeFile(String fileName, String content) throws IOException {
         writeFile(fileName, new ByteArrayInputStream(content.getBytes(StandardCharsets.UTF_8)));
     }

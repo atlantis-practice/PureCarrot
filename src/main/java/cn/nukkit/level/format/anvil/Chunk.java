@@ -40,7 +40,7 @@ public class Chunk extends BaseChunk {
             NBTInputStream in = new NBTInputStream(new ByteArrayInputStream(baos.toByteArray()));
             chunk.nbt = new CompoundTag();
             chunk.nbt.load(in);
-        } catch (IOException e) {
+        } catch (IOException ignored) {
 
         }
         return chunk;
@@ -134,9 +134,6 @@ public class Chunk extends BaseChunk {
             } else {
                 throw new ChunkException("Received invalid ChunkSection instance");
             }
-            if (Y >= SECTION_COUNT) {
-                throw new ChunkException("Invalid amount of chunks");
-            }
         }
 
         int[] biomeColors = this.nbt.getIntArray("BiomeColors");
@@ -172,9 +169,9 @@ public class Chunk extends BaseChunk {
                         @SuppressWarnings("unchecked")
                         Class<? extends Block> clazz = (Class<? extends Block>) Class.forName("cn.nukkit.block." + name);
 
-                        Constructor constructor = clazz.getDeclaredConstructor(int.class);
+                        Constructor<? extends Block> constructor = clazz.getDeclaredConstructor(int.class);
                         constructor.setAccessible(true);
-                        block = (Block) constructor.newInstance(0);
+                        block = constructor.newInstance(0);
                     }
                 } catch (Throwable e) {
                     continue;

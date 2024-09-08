@@ -17,11 +17,13 @@ import org.apache.logging.log4j.core.config.LoggerConfig;
 
 import java.io.IOException;
 
+import static cn.nukkit.utils.Utils.dynamic;
+
 @Log4j2
 public class Nukkit {
-    public final static String VERSION = "1.0.1";
-    public final static String API_VERSION = "1.0.0";
-    public final static String CORE_NAME = "PureCarrot";
+    public final static String VERSION = dynamic("1.0.1");
+    public final static String API_VERSION = dynamic("1.0.0");
+    public final static String CORE_NAME = dynamic("PureCarrot");
     public final static String PATH = System.getProperty("user.dir") + "/";
     public final static String DATA_PATH = System.getProperty("user.dir") + "/";
     public final static String PLUGIN_PATH = DATA_PATH + "plugins";

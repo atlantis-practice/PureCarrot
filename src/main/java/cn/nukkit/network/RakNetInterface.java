@@ -34,8 +34,6 @@ public class RakNetInterface implements ServerInstance, AdvancedSourceInterface 
 
     private Network network;
 
-    private final RakNetServer raknet;
-
     private final Map<String, Player> players = new ConcurrentHashMap<>();
 
     private final Map<String, Integer> networkLatency = new ConcurrentHashMap<>();
@@ -46,13 +44,13 @@ public class RakNetInterface implements ServerInstance, AdvancedSourceInterface 
 
     private final ServerHandler handler;
 
-    private int[] channelCounts = new int[256];
+    private final int[] channelCounts = new int[256];
 
     public RakNetInterface(Server server) {
         this.server = server;
 
-        this.raknet = new RakNetServer(this.server.getLogger(), this.server.getPort(), this.server.getIp().equals("") ? "0.0.0.0" : this.server.getIp());
-        this.handler = new ServerHandler(this.raknet, this);
+        RakNetServer raknet = new RakNetServer(this.server.getLogger(), this.server.getPort(), this.server.getIp().equals("") ? "0.0.0.0" : this.server.getIp());
+        this.handler = new ServerHandler(raknet, this);
     }
 
     @Override

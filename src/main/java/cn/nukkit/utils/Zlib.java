@@ -9,7 +9,8 @@ import java.util.zip.InflaterInputStream;
 
 
 public abstract class Zlib {
-    
+
+
     public static byte[] deflate(byte[] data) throws Exception {
         return deflate(data, Deflater.DEFAULT_COMPRESSION);
     }

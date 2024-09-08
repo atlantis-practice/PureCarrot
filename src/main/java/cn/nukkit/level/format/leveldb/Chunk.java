@@ -89,19 +89,9 @@ public class Chunk extends BaseFullChunk {
         this.skyLight = skyLight;
         this.blockLight = blockLight;
 
-        if (biomeColors.length == 256) {
-            this.biomeColors = biomeColors;
-        } else {
-            this.biomeColors = new int[256];
-        }
+        this.biomeColors = biomeColors;
 
-        if (heightMap.length == 256) {
-            this.heightMap = heightMap;
-        } else {
-            int[] ints = new int[256];
-            Arrays.fill(ints, 127);
-            this.heightMap = ints;
-        }
+        this.heightMap = heightMap;
 
         this.NBTentities = entityData == null ? new ArrayList<>() : entityData;
         this.NBTtiles = tileData == null ? new ArrayList<>() : tileData;
