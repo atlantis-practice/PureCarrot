@@ -440,16 +440,16 @@ public class Server {
                 }
 
                 Map<String, Object> options = new HashMap<>();
-                String[] opts = ((String) this.getConfig("worlds." + name + ".generator", Generator.getGenerator("default").getSimpleName())).split(":");
+                String[] opts = this.getConfig("worlds." + name + ".generator", Generator.getGenerator("default").getSimpleName()).split(":");
                 Class<? extends Generator> generator = Generator.getGenerator(opts[0]);
                 if (opts.length > 1) {
-                    String preset = "";
+                    StringBuilder preset = new StringBuilder();
                     for (int i = 1; i < opts.length; i++) {
-                        preset += opts[i] + ":";
+                        preset.append(opts[i]).append(":");
                     }
-                    preset = preset.substring(0, preset.length() - 1);
+                    preset = new StringBuilder(preset.substring(0, preset.length() - 1));
 
-                    options.put("preset", preset);
+                    options.put("preset", preset.toString());
                 }
 
                 this.generateLevel(name, seed, generator, options);
@@ -468,7 +468,7 @@ public class Server {
                 long seed;
                 String seedString = String.valueOf(this.getProperty("level-seed", System.currentTimeMillis()));
                 try {
-                    seed = Long.valueOf(seedString);
+                    seed = Long.parseLong(seedString);
                 } catch (NumberFormatException e) {
                     seed = seedString.hashCode();
                 }
@@ -497,56 +497,54 @@ public class Server {
     }
 
     public int broadcastMessage(String message) {
-        return this.broadcast(message, BROADCAST_CHANNEL_USERS);
+        return broadcast(message, BROADCAST_CHANNEL_USERS);
     }
 
     public int broadcastMessage(TextContainer message) {
-        return this.broadcast(message, BROADCAST_CHANNEL_USERS);
+        return broadcast(message, BROADCAST_CHANNEL_USERS);
     }
 
     public int broadcastMessage(String message, CommandSender[] recipients) {
-        for (CommandSender recipient : recipients) {
-            recipient.sendMessage(message);
-        }
-
-        return recipients.length;
+        return broadcastMessageToRecipients(message, recipients);
     }
 
     public int broadcastMessage(String message, Collection<CommandSender> recipients) {
-        for (CommandSender recipient : recipients) {
-            recipient.sendMessage(message);
-        }
-
-        return recipients.size();
+        return broadcastMessageToRecipients(message, recipients);
     }
 
     public int broadcastMessage(TextContainer message, Collection<CommandSender> recipients) {
-        for (CommandSender recipient : recipients) {
-            recipient.sendMessage(message);
-        }
-
-        return recipients.size();
+        return broadcastMessageToRecipients(message, recipients);
     }
 
     public int broadcast(String message, String permissions) {
-        Set<CommandSender> recipients = new HashSet<>();
-
-        for (String permission : permissions.split(";")) {
-            for (Permissible permissible : this.pluginManager.getPermissionSubscriptions(permission)) {
-                if (permissible instanceof CommandSender && permissible.hasPermission(permission)) {
-                    recipients.add((CommandSender) permissible);
-                }
-            }
-        }
-
-        for (CommandSender recipient : recipients) {
-            recipient.sendMessage(message);
-        }
-
-        return recipients.size();
+        return broadcastMessage(message, permissions);
     }
 
     public int broadcast(TextContainer message, String permissions) {
+        return broadcastMessage(message, permissions);
+    }
+
+    private <T> int broadcastMessageToRecipients(T message, Object recipients) {
+        Set<CommandSender> recipientSet = new HashSet<>();
+
+        if (recipients instanceof CommandSender[]) {
+            recipientSet.addAll(Arrays.asList((CommandSender[]) recipients));
+        } else if (recipients instanceof Collection) {
+            recipientSet.addAll((Collection<CommandSender>) recipients);
+        }
+
+        for (CommandSender recipient : recipientSet) {
+            if (message instanceof String) {
+                recipient.sendMessage((String) message);
+            } else if (message instanceof TextContainer) {
+                recipient.sendMessage((TextContainer) message);
+            }
+        }
+
+        return recipientSet.size();
+    }
+
+    private <T> int broadcastMessage(T message, String permissions) {
         Set<CommandSender> recipients = new HashSet<>();
 
         for (String permission : permissions.split(";")) {
@@ -557,42 +555,45 @@ public class Server {
             }
         }
 
-        for (CommandSender recipient : recipients) {
-            recipient.sendMessage(message);
-        }
-
-        return recipients.size();
+        return broadcastMessageToRecipients(message, recipients);
     }
 
 
     public static void broadcastPacket(Collection<Player> players, DataPacket packet) {
-        broadcastPacket(players.stream().toArray(Player[]::new), packet);
+        if (players == null || packet == null) {
+            return; // Early exit for null checks
+        }
+        broadcastPacket(players.toArray(new Player[0]), packet);
     }
 
     public static void broadcastPacket(Player[] players, DataPacket packet) {
+        if (packet == null) {
+            return; // Early exit for null checks
+        }
         packet.encode();
         packet.isEncoded = true;
 
         for (Player player : players) {
-            player.dataPacket(packet);
+            if (player != null) {
+                player.dataPacket(packet);
+            }
         }
 
-        if (packet.encapsulatedPacket != null) {
-            packet.encapsulatedPacket = null;
-        }
+        packet.encapsulatedPacket = null; // Clear encapsulated packet
     }
 
     public void batchPackets(Player[] players, DataPacket[] packets) {
-        this.batchPackets(players, packets, false);
+        batchPackets(players, packets, false);
     }
 
     public void batchPackets(Player[] players, DataPacket[] packets, boolean forceSync) {
         if (players == null || packets == null || players.length == 0 || packets.length == 0) {
-            return;
+            return; // Early exit for null checks
         }
 
         Timings.playerNetworkSendTimer.startTiming();
         byte[][] payload = new byte[packets.length * 2][];
+
         for (int i = 0; i < packets.length; i++) {
             DataPacket p = packets[i];
             if (!p.isEncoded) {
@@ -602,12 +603,12 @@ public class Server {
             payload[i * 2] = Binary.writeUnsignedVarInt(buf.length);
             payload[i * 2 + 1] = buf;
         }
-        byte[] data;
-        data = Binary.appendBytes(payload);
 
+        byte[] data = Binary.appendBytes(payload);
         List<String> targets = new ArrayList<>();
+
         for (Player p : players) {
-            if (p.isConnected()) {
+            if (p != null && p.isConnected()) {
                 targets.add(this.identifier.get(p.rawHashCode()));
             }
         }
@@ -618,19 +619,25 @@ public class Server {
             try {
                 this.broadcastPacketsCallback(Zlib.deflate(data, this.networkCompressionLevel), targets);
             } catch (Exception e) {
-                throw new RuntimeException(e);
+                throw new RuntimeException("Error during packet broadcasting", e);
             }
         }
+
         Timings.playerNetworkSendTimer.stopTiming();
     }
 
     public void broadcastPacketsCallback(byte[] data, List<String> identifiers) {
+        if (data == null || identifiers == null) {
+            return; // Early exit for null checks
+        }
+
         BatchPacket pk = new BatchPacket();
         pk.payload = data;
 
-        for (String i : identifiers) {
-            if (this.players.containsKey(i)) {
-                this.players.get(i).dataPacket(pk);
+        for (String identifier : identifiers) {
+            Player player = this.players.get(identifier);
+            if (player != null) {
+                player.dataPacket(pk);
             }
         }
     }
@@ -661,7 +668,6 @@ public class Server {
         if (!this.isPrimaryThread()) {
             getLogger().warning("Command Dispatched Async: " + commandLine);
             getLogger().warning("Please notify author of plugin causing this execution to fix this bug!", new Throwable());
-            // TODO: We should sync the command to the main thread too!
         }
         if (sender == null) {
             throw new ServerException("CommandSender is not valid");
@@ -732,10 +738,6 @@ public class Server {
         }
 
         try {
-            if (!this.isRunning) {
-                //todo sendUsage
-            }
-
             this.hasStopped = true;
 
             this.shutdown();
@@ -774,7 +776,6 @@ public class Server {
 
             this.getLogger().debug("Disabling timings");
             Timings.stopServer();
-            //todo other things
         } catch (Exception e) {
             log.fatal("Exception happened while shutting down, exit the process", e);
             System.exit(1);
@@ -789,8 +790,6 @@ public class Server {
         for (BanEntry entry : this.getIPBans().getEntires().values()) {
             this.network.blockAddress(entry.getName(), -1);
         }
-
-        //todo send usage setting
 
         this.tickCounter = 0;
 
@@ -895,7 +894,7 @@ public class Server {
     }
 
     public void removePlayerListData(UUID uuid, Collection<Player> players) {
-        this.removePlayerListData(uuid, players.stream().toArray(Player[]::new));
+        this.removePlayerListData(uuid, players.toArray(Player[]::new));
     }
 
     public void sendFullPlayerListData(Player player) {
@@ -920,16 +919,9 @@ public class Server {
     }
 
     private void checkTickUpdates(int currentTick, long tickTime) {
-        for (Player p : new ArrayList<>(this.players.values())) {
-            /*if (!p.loggedIn && (tickTime - p.creationTime) >= 10000 && p.kick(PlayerKickEvent.Reason.LOGIN_TIMEOUT, "Login timeout")) {
-                continue;
-            }
-
-            client freezes when applying resource packs
-            todo: fix*/
-
+        for (Player player : this.players.values()) {
             if (this.alwaysTickPlayers) {
-                p.onUpdate(currentTick);
+                player.onUpdate(currentTick);
             }
         }
 
@@ -989,11 +981,11 @@ public class Server {
         }
     }
 
-    private boolean tick() {
+    private void tick() {
         long tickTime = System.currentTimeMillis();
         long tickTimeNano = System.nanoTime();
         if ((tickTime - this.nextTick) < -25) {
-            return false;
+            return;
         }
 
         Timings.fullServerTickTimer.startTiming();
@@ -1019,7 +1011,6 @@ public class Server {
         }
 
         if ((this.tickCounter & 0b1111) == 0) {
-            this.titleTick();
             this.maxTick = 20;
             this.maxUse = 0;
 
@@ -1044,7 +1035,6 @@ public class Server {
 
         if (this.sendUsageTicker > 0 && --this.sendUsageTicker == 0) {
             this.sendUsageTicker = 6000;
-            //todo sendUsage
         }
 
         if (this.tickCounter % 100 == 0) {
@@ -1083,33 +1073,6 @@ public class Server {
             this.nextTick += 50;
         }
 
-        return true;
-    }
-
-    // TODO: Fix title tick
-    public void titleTick() {
-        if (true || !Nukkit.ANSI) {
-            return;
-        }
-
-        Runtime runtime = Runtime.getRuntime();
-        double used = NukkitMath.round((double) (runtime.totalMemory() - runtime.freeMemory()) / 1024 / 1024, 2);
-        double max = NukkitMath.round(((double) runtime.maxMemory()) / 1024 / 1024, 2);
-        String usage = Math.round(used / max * 100) + "%";
-        String title = (char) 0x1b + "]0;" + this.getName() + " " +
-                this.getNukkitVersion() +
-                " | Online " + this.players.size() + "/" + this.getMaxPlayers() +
-                " | Memory " + usage;
-        if (!Nukkit.shortTitle) {
-            title += " | U " + NukkitMath.round((this.network.getUpload() / 1024 * 1000), 2)
-                    + " D " + NukkitMath.round((this.network.getDownload() / 1024 * 1000), 2) + " kB/s";
-        }
-        title += " | TPS " + this.getTicksPerSecond() +
-                " | Load " + this.getTickUsage() + "%" + (char) 0x07;
-
-        System.out.print(title);
-
-        this.network.resetStatistics();
     }
 
     public QueryRegenerateEvent getQueryInformation() {

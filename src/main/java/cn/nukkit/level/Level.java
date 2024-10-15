@@ -2612,11 +2612,6 @@ public class Level implements ChunkManager, Metadatable {
             return false;
         }
 
-        if (!chunk.isLightPopulated() && chunk.isPopulated()
-                && (boolean) this.getServer().getConfig("chunk-ticking.light-updates", false)) {
-            this.getServer().getScheduler().scheduleAsyncTask(new LightPopulationTask(this, chunk));
-        }
-
         if (this.isChunkInUse(x, z)) {
             for (ChunkLoader loader : this.getChunkLoaders(x, z)) {
                 loader.onChunkLoaded(chunk);
@@ -2830,43 +2825,53 @@ public class Level implements ChunkManager, Metadatable {
 
     public boolean populateChunk(int x, int z, boolean force) {
         Long index = Level.chunkHash(x, z);
-        if (this.chunkPopulationQueue.containsKey(index) || this.chunkPopulationQueue.size() >= this.chunkPopulationQueueSize && !force) {
+
+        // Check if the chunk is already in the queue or if the queue is full and force is not set
+        if (this.chunkPopulationQueue.containsKey(index) ||
+                (this.chunkPopulationQueue.size() >= this.chunkPopulationQueueSize && !force)) {
             return false;
         }
 
         BaseFullChunk chunk = this.getChunk(x, z, true);
-        boolean populate;
+
+        // If the chunk is not populated, proceed with population
         if (!chunk.isPopulated()) {
             Timings.populationTimer.startTiming();
-            populate = true;
-            for (int xx = -1; xx <= 1; ++xx) {
-                for (int zz = -1; zz <= 1; ++zz) {
-                    if (this.chunkPopulationLock.containsKey(Level.chunkHash(x + xx, z + zz))) {
 
-                        populate = false;
-                        break;
-                    }
-                }
+            // Check surrounding chunks for locks
+            if (canPopulateSurroundingChunks(x, z)) {
+                this.chunkPopulationQueue.put(index, true);
+                lockSurroundingChunks(x, z);
+
+                // Schedule the population task
+                PopulationTask task = new PopulationTask(this, chunk);
+                this.server.getScheduler().scheduleAsyncTask(task);
             }
 
-            if (populate) {
-                if (!this.chunkPopulationQueue.containsKey(index)) {
-                    this.chunkPopulationQueue.put(index, true);
-                    for (int xx = -1; xx <= 1; ++xx) {
-                        for (int zz = -1; zz <= 1; ++zz) {
-                            this.chunkPopulationLock.put(Level.chunkHash(x + xx, z + zz), true);
-                        }
-                    }
-
-                    PopulationTask task = new PopulationTask(this, chunk);
-                    this.server.getScheduler().scheduleAsyncTask(task);
-                }
-            }
             Timings.populationTimer.stopTiming();
             return false;
         }
 
         return true;
+    }
+
+    private boolean canPopulateSurroundingChunks(int x, int z) {
+        for (int xx = -1; xx <= 1; ++xx) {
+            for (int zz = -1; zz <= 1; ++zz) {
+                if (this.chunkPopulationLock.containsKey(Level.chunkHash(x + xx, z + zz))) {
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+
+    private void lockSurroundingChunks(int x, int z) {
+        for (int xx = -1; xx <= 1; ++xx) {
+            for (int zz = -1; zz <= 1; ++zz) {
+                this.chunkPopulationLock.put(Level.chunkHash(x + xx, z + zz), true);
+            }
+        }
     }
 
     public void generateChunk(int x, int z) {
@@ -2907,7 +2912,7 @@ public class Level implements ChunkManager, Metadatable {
                 continue;
             toClose.add(anBlockEntity);
         }
-        for (BlockEntity be : toClose.toArray(new BlockEntity[toClose.size()])) {
+        for (BlockEntity be : toClose.toArray(new BlockEntity[0])) {
             be.close();
         }
 
@@ -3089,7 +3094,7 @@ public class Level implements ChunkManager, Metadatable {
 
     public void sendWeather(Player[] players) {
         if (players == null) {
-            players = this.getPlayers().values().stream().toArray(Player[]::new);
+            players = this.getPlayers().values().toArray(Player[]::new);
         }
 
         LevelEventPacket pk = new LevelEventPacket();
@@ -3123,7 +3128,7 @@ public class Level implements ChunkManager, Metadatable {
         if (players == null) {
             players = this.getPlayers().values();
         }
-        this.sendWeather(players.stream().toArray(Player[]::new));
+        this.sendWeather(players.toArray(Player[]::new));
     }
 
     public int getDimension() {
@@ -3147,30 +3152,22 @@ public class Level implements ChunkManager, Metadatable {
         } else {
             i = Math.max(i, this.getStrongPower(pos.up(), BlockFace.UP));
 
-            if (i >= 15) {
-                return i;
-            } else {
+            if (i < 15) {
                 i = Math.max(i, this.getStrongPower(pos.north(), BlockFace.NORTH));
 
-                if (i >= 15) {
-                    return i;
-                } else {
+                if (i < 15) {
                     i = Math.max(i, this.getStrongPower(pos.south(), BlockFace.SOUTH));
 
-                    if (i >= 15) {
-                        return i;
-                    } else {
+                    if (i < 15) {
                         i = Math.max(i, this.getStrongPower(pos.west(), BlockFace.WEST));
 
-                        if (i >= 15) {
-                            return i;
-                        } else {
+                        if (i < 15) {
                             i = Math.max(i, this.getStrongPower(pos.east(), BlockFace.EAST));
-                            return i >= 15 ? i : i;
                         }
                     }
                 }
             }
+            return i;
         }
     }
 

@@ -30,7 +30,6 @@ public class Nukkit {
     public static final long START_TIME = System.currentTimeMillis();
     public static boolean ANSI = true;
     public static boolean TITLE = false;
-    public static boolean shortTitle = requiresShortTitle();
     public static int DEBUG = 1;
 
     public static void main(String[] args) {
@@ -119,12 +118,6 @@ public class Nukkit {
             System.out.print((char) 0x1b + "]0;Server Stopped" + (char) 0x07);
         }
         System.exit(0);
-    }
-
-    private static boolean requiresShortTitle() {
-        //Shorter title for windows 8/2012
-        String osName = System.getProperty("os.name").toLowerCase();
-        return osName.contains("windows") &&(osName.contains("windows 8") || osName.contains("2012"));
     }
 
     public static void setLogLevel(Level level) {
